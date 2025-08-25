@@ -1,6 +1,7 @@
 # analisarIA.py
 
 import os
+from CalculoEWETC.ewetc import calcular_ewetc
 import dotenv
 import re
 import requests
@@ -10,7 +11,7 @@ from RedditApi.redditbot import buscar_posts_reddit
 from RegistroExcel.registrarExcel import registrar_excel
 from RespostaEstruturada.structureResponse import gerar_pesquisa_ia
 from RegistrarTelegram.envioMensagem import enviar_resposta
-
+import numpy as np
 from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora.dictionary import Dictionary
 
@@ -64,8 +65,7 @@ Retorne apenas a lista de tópicos.
         topicos_extraidos = [t.strip() for t in texto_ia.split(",") if t.strip()]
 
     # Tokenizar posts e tópicos
-    textos_tokenizados = [preprocess(post) for post in posts]
-    dicionario = Dictionary(textos_tokenizados)
+
 
     # Garantir que cada tópico seja uma lista de tokens válida
     topicos_tokenizados = []
@@ -84,7 +84,9 @@ Retorne apenas a lista de tópicos.
     #     )
     #     coerencia_valor = cm.get_coherence()
     # else:
-    coerencia_valor = 0.0
+    ewetc_scores = calcular_ewetc(topicos_extraidos)
+    coerencia_valor = np.mean(ewetc_scores)
+    print("Coerência (c_v):", coerencia_valor)
 
     # Resumo via IA
     resumo = await gerar_pesquisa_ia("\n".join(topicos_extraidos))

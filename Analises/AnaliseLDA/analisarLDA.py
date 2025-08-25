@@ -1,4 +1,5 @@
 from Analises.AnaliseLDA.numberTopics import sugerir_numero_topicos
+from CalculoEWETC.ewetc import calcular_ewetc
 from RedditApi.redditbot import buscar_posts_reddit
 from RegistrarTelegram.envioMensagem import enviar_resposta
 from RegistroExcel.registrarExcel import registrar_excel
@@ -7,6 +8,7 @@ from gensim import corpora, models
 from gensim.models.coherencemodel import CoherenceModel
 from nltk.corpus import stopwords
 import re
+import numpy as np
 import asyncio
 
 # ✅ Garante que stopwords estão disponíveis só uma vez
@@ -50,12 +52,12 @@ async def analisar_topicos_lda(tema, quantidade, context,n_topicos=None):
         corpus, num_topics=n_topicos, id2word=dicionario, passes=10
     )
 
-    # ✅ Corrigido: estava usando "tokens" (variável inexistente)
-    coerencia_modelo = CoherenceModel(
-        model=lda_modelo, texts=textos_processados, dictionary=dicionario, coherence="c_v"
-    )
-    coerencia_valor = coerencia_modelo.get_coherence()
-    print("Coerência (c_v):", coerencia_valor)
+    # # ✅ Corrigido: estava usando "tokens" (variável inexistente)
+    # coerencia_modelo = CoherenceModel(
+    #     model=lda_modelo, texts=textos_processados, dictionary=dicionario, coherence="c_v"
+    # )
+    # coerencia_valor = coerencia_modelo.get_coherence()
+
 
     # Extrai tópicos
     topicos_extraidos = []
@@ -64,6 +66,9 @@ async def analisar_topicos_lda(tema, quantidade, context,n_topicos=None):
         palavras_chave = ", ".join([palavra for palavra, _ in palavras])
         topicos_extraidos.append(palavras_chave)
 
+    ewetc_scores = calcular_ewetc(topicos_extraidos)
+    coerencia_valor = np.mean(ewetc_scores)
+    print("Coerência (c_v):", coerencia_valor)
     # Gera resumo com IA
     resumo = await gerar_pesquisa_ia("\n".join(topicos_extraidos))
 

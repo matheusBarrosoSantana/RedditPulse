@@ -1,3 +1,4 @@
+from CalculoEWETC.ewetc import calcular_ewetc
 from bertopic import BERTopic
 from RedditApi.redditbot import buscar_posts_reddit
 from RegistrarTelegram.envioMensagem import enviar_resposta
@@ -6,6 +7,7 @@ from RespostaEstruturada.structureResponse import gerar_pesquisa_ia  # async fun
 from gensim.models.coherencemodel import CoherenceModel
 from gensim.corpora.dictionary import Dictionary
 import re
+import numpy as np
 
 def preprocess(texto):
     return re.findall(r'\b\w+\b', texto.lower())
@@ -36,8 +38,9 @@ async def analisar_topicos_bertopic(tema, quantidade,context):
         topicos.append(palavras_chave)
         saida += f"Tópico {row['Topic']}: {palavras_chave}\n"
 
-    textos_tokenizados = [preprocess(post) for post in posts]
-    dicionario = Dictionary(textos_tokenizados)
+    ewetc_scores = calcular_ewetc(topicos)
+    coerencia_valor = np.mean(ewetc_scores)
+    print("Coerência (c_v):", coerencia_valor)
 
     # cm = CoherenceModel(
     #     topics=termos_todos_topicos,
@@ -45,7 +48,7 @@ async def analisar_topicos_bertopic(tema, quantidade,context):
     #     dictionary=dicionario,
     #     coherence='c_v'
     # )
-    coerencia = 0
+  
 
     resposta = await gerar_pesquisa_ia(saida)
 
@@ -55,10 +58,10 @@ async def analisar_topicos_bertopic(tema, quantidade,context):
         tema=tema,
         posts=posts,
         topicos=topicos,
-        coerencia=coerencia,
+        coerencia=coerencia_valor,
         resumo=resposta
     )
-    await enviar_resposta(tema, 'BERTOPIC', resposta, topicos, coerencia, context)
+    await enviar_resposta(tema, 'BERTOPIC', resposta, topicos, coerencia_valor, context)
 
     if not resposta:
         return "Não foi possível gerar a pesquisa de opinião."
